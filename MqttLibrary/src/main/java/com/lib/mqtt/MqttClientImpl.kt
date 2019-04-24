@@ -263,15 +263,20 @@ class MqttClientImpl : MqttCallback {
 
     private fun doPublish(message: MqttMessageImpl) {
         Log.i("Mqtt", "doPublish:" + message.topic)
-        try {
-            sendQueue.remove(message.serialNumber)
-            client?.publish(message.topic, message, message.serialNumber, publishCallback)
-            waitQueue[message.serialNumber] = message
-        } catch (e: MqttException) {
-            e.printStackTrace()
-            sendResult(message, MqttErrorCode.EXCEPTION)
-        } finally {
+        if (!isConnected()) {
+            sendResult(message, MqttErrorCode.DISCONNCECT)
             mHandler.postDelayed(mSendRunnable, sendDelay)
+        } else {
+            try {
+                sendQueue.remove(message.serialNumber)
+                client?.publish(message.topic, message, message.serialNumber, publishCallback)
+                waitQueue[message.serialNumber] = message
+            } catch (e: MqttException) {
+                e.printStackTrace()
+                sendResult(message, MqttErrorCode.EXCEPTION)
+            } finally {
+                mHandler.postDelayed(mSendRunnable, sendDelay)
+            }
         }
     }
 
